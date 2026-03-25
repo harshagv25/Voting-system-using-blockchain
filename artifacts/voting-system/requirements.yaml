@@ -1,0 +1,24 @@
+packages:
+  "framer-motion": "For smooth page transitions, stagger effects, and modern UI animations"
+  "recharts": "For rendering real-time live election results (bar and pie charts)"
+  "@vladmandic/face-api": "Modern maintained fork of face-api.js for webcam face detection and verification"
+  "react-webcam": "To access the device camera for live face capture and authentication"
+  "lucide-react": "For beautiful consistent iconography"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility for merging tailwind classes without style conflicts"
+
+images:
+  - path: "artifacts/voting-system/public/images/hero-bg.png"
+    description: "Dark moody background with abstract glowing geometric shapes, deep navy blue and bright neon blue/cyan accents, premium glassmorphism tech aesthetic"
+    aspect_ratio: "16:9"
+  - path: "artifacts/voting-system/public/images/logo.png"
+    description: "Minimalist modern logo mark for a government voting system, combining a checkmark and a blockchain hexagon, glowing cyan on dark transparent background"
+    aspect_ratio: "1:1"
+  - path: "artifacts/voting-system/public/images/candidate-placeholder.png"
+    description: "A neutral, professional generic silhouette placeholder for a candidate profile photo, dark mode styling"
+    aspect_ratio: "1:1"
+
+notes:
+  - Uses @workspace/api-client-react for TanStack Query hooks and API calls.
+  - Expects face-api models to be loaded gracefully. If external CDN blocks them, a mock fallback is used to preserve UI demonstration.
+  - Implements a simulated "Face Authentication" process using webcam feeds to satisfy requirements.

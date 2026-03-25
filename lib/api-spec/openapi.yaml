@@ -1,0 +1,867 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Digital Voting System API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication and voter registration
+  - name: candidates
+    description: Candidate management
+  - name: voting
+    description: Voting operations
+  - name: results
+    description: Election results
+  - name: blockchain
+    description: Blockchain explorer
+  - name: admin
+    description: Admin operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: registerVoter
+      tags: [auth]
+      summary: Register a new voter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Voter registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Voter already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: loginVoter
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/verify-aadhaar:
+    post:
+      operationId: verifyAadhaar
+      tags: [auth]
+      summary: Verify Aadhaar number for logged-in voter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyAadhaarRequest"
+      responses:
+        "200":
+          description: Aadhaar verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AadhaarVerifyResponse"
+        "401":
+          description: Aadhaar mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/store-face:
+    post:
+      operationId: storeFaceData
+      tags: [auth]
+      summary: Store face descriptor for voter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreFaceRequest"
+      responses:
+        "200":
+          description: Face data stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getCurrentVoter
+      tags: [auth]
+      summary: Get current voter info
+      parameters:
+        - in: header
+          name: x-voter-id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Voter info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoterProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /candidates:
+    get:
+      operationId: listCandidates
+      tags: [candidates]
+      summary: List all candidates
+      responses:
+        "200":
+          description: List of candidates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Candidate"
+    post:
+      operationId: createCandidate
+      tags: [candidates]
+      summary: Create a candidate (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCandidateRequest"
+      responses:
+        "201":
+          description: Candidate created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Candidate"
+
+  /candidates/{id}:
+    put:
+      operationId: updateCandidate
+      tags: [candidates]
+      summary: Update a candidate (admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCandidateRequest"
+      responses:
+        "200":
+          description: Candidate updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Candidate"
+    delete:
+      operationId: deleteCandidate
+      tags: [candidates]
+      summary: Delete a candidate (admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Candidate deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /voting/cast:
+    post:
+      operationId: castVote
+      tags: [voting]
+      summary: Cast a vote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CastVoteRequest"
+      responses:
+        "201":
+          description: Vote cast
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoteResponse"
+        "400":
+          description: Already voted or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /voting/status/{voterId}:
+    get:
+      operationId: getVotingStatus
+      tags: [voting]
+      summary: Check if voter has voted
+      parameters:
+        - in: path
+          name: voterId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Voting status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VotingStatus"
+
+  /results:
+    get:
+      operationId: getResults
+      tags: [results]
+      summary: Get election results
+      responses:
+        "200":
+          description: Election results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ElectionResults"
+
+  /blockchain:
+    get:
+      operationId: getBlockchain
+      tags: [blockchain]
+      summary: Get blockchain data
+      responses:
+        "200":
+          description: Blockchain blocks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockchainResponse"
+
+  /blockchain/validate:
+    get:
+      operationId: validateBlockchain
+      tags: [blockchain]
+      summary: Validate blockchain integrity
+      responses:
+        "200":
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockchainValidation"
+
+  /admin/election:
+    get:
+      operationId: getElectionStatus
+      tags: [admin]
+      summary: Get election status
+      responses:
+        "200":
+          description: Election status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ElectionStatus"
+    put:
+      operationId: updateElectionStatus
+      tags: [admin]
+      summary: Start or stop election
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateElectionRequest"
+      responses:
+        "200":
+          description: Election status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ElectionStatus"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get admin statistics
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/reset:
+    post:
+      operationId: resetElection
+      tags: [admin]
+      summary: Reset the entire election
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetRequest"
+      responses:
+        "200":
+          description: Election reset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/fraud-log:
+    get:
+      operationId: getFraudLog
+      tags: [admin]
+      summary: Get fraud attempt logs
+      responses:
+        "200":
+          description: Fraud logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FraudLog"
+    post:
+      operationId: logFraudAttempt
+      tags: [admin]
+      summary: Log a fraud attempt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogFraudRequest"
+      responses:
+        "201":
+          description: Logged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/toggle-results:
+    put:
+      operationId: toggleResultsVisibility
+      tags: [admin]
+      summary: Toggle results visibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToggleResultsRequest"
+      responses:
+        "200":
+          description: Toggled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        aadhaarNumber:
+          type: string
+          description: 12-digit Aadhaar number
+        faceDescriptor:
+          type: array
+          items:
+            type: number
+          nullable: true
+          description: 128-dimension face descriptor array
+      required:
+        - name
+        - email
+        - password
+        - aadhaarNumber
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        voterId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        token:
+          type: string
+        hasVoted:
+          type: boolean
+        aadhaarVerified:
+          type: boolean
+      required:
+        - voterId
+        - name
+        - email
+        - token
+        - hasVoted
+        - aadhaarVerified
+
+    VoterProfile:
+      type: object
+      properties:
+        voterId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        hasVoted:
+          type: boolean
+        aadhaarVerified:
+          type: boolean
+        hasFaceData:
+          type: boolean
+        registeredAt:
+          type: string
+      required:
+        - voterId
+        - name
+        - email
+        - hasVoted
+        - aadhaarVerified
+        - hasFaceData
+        - registeredAt
+
+    VerifyAadhaarRequest:
+      type: object
+      properties:
+        voterId:
+          type: string
+        aadhaarNumber:
+          type: string
+      required:
+        - voterId
+        - aadhaarNumber
+
+    AadhaarVerifyResponse:
+      type: object
+      properties:
+        verified:
+          type: boolean
+        message:
+          type: string
+      required:
+        - verified
+        - message
+
+    StoreFaceRequest:
+      type: object
+      properties:
+        voterId:
+          type: string
+        faceDescriptor:
+          type: array
+          items:
+            type: number
+      required:
+        - voterId
+        - faceDescriptor
+
+    Candidate:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        party:
+          type: string
+        description:
+          type: string
+        photoUrl:
+          type: string
+          nullable: true
+        voteCount:
+          type: integer
+        symbol:
+          type: string
+          nullable: true
+      required:
+        - id
+        - name
+        - party
+        - description
+        - voteCount
+
+    CreateCandidateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        party:
+          type: string
+        description:
+          type: string
+        photoUrl:
+          type: string
+          nullable: true
+        symbol:
+          type: string
+          nullable: true
+      required:
+        - name
+        - party
+        - description
+
+    CastVoteRequest:
+      type: object
+      properties:
+        voterId:
+          type: string
+        candidateId:
+          type: integer
+        faceVerified:
+          type: boolean
+        aadhaarVerified:
+          type: boolean
+      required:
+        - voterId
+        - candidateId
+        - faceVerified
+        - aadhaarVerified
+
+    VoteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        blockHash:
+          type: string
+        blockIndex:
+          type: integer
+        message:
+          type: string
+      required:
+        - success
+        - blockHash
+        - blockIndex
+        - message
+
+    VotingStatus:
+      type: object
+      properties:
+        hasVoted:
+          type: boolean
+        votedAt:
+          type: string
+          nullable: true
+        candidateId:
+          type: integer
+          nullable: true
+      required:
+        - hasVoted
+
+    ElectionResults:
+      type: object
+      properties:
+        isHidden:
+          type: boolean
+        totalVotes:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/CandidateResult"
+      required:
+        - isHidden
+        - totalVotes
+        - results
+
+    CandidateResult:
+      type: object
+      properties:
+        candidateId:
+          type: integer
+        name:
+          type: string
+        party:
+          type: string
+        symbol:
+          type: string
+          nullable: true
+        voteCount:
+          type: integer
+        percentage:
+          type: number
+      required:
+        - candidateId
+        - name
+        - party
+        - voteCount
+        - percentage
+
+    Block:
+      type: object
+      properties:
+        index:
+          type: integer
+        voterId:
+          type: string
+        candidateId:
+          type: integer
+        timestamp:
+          type: string
+        previousHash:
+          type: string
+        hash:
+          type: string
+        nonce:
+          type: integer
+      required:
+        - index
+        - voterId
+        - candidateId
+        - timestamp
+        - previousHash
+        - hash
+        - nonce
+
+    BlockchainResponse:
+      type: object
+      properties:
+        blocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Block"
+        isValid:
+          type: boolean
+        totalBlocks:
+          type: integer
+      required:
+        - blocks
+        - isValid
+        - totalBlocks
+
+    BlockchainValidation:
+      type: object
+      properties:
+        isValid:
+          type: boolean
+        message:
+          type: string
+        brokenAt:
+          type: integer
+          nullable: true
+      required:
+        - isValid
+        - message
+
+    ElectionStatus:
+      type: object
+      properties:
+        isActive:
+          type: boolean
+        startedAt:
+          type: string
+          nullable: true
+        endedAt:
+          type: string
+          nullable: true
+        resultsHidden:
+          type: boolean
+      required:
+        - isActive
+        - resultsHidden
+
+    UpdateElectionRequest:
+      type: object
+      properties:
+        isActive:
+          type: boolean
+      required:
+        - isActive
+
+    AdminStats:
+      type: object
+      properties:
+        totalVoters:
+          type: integer
+        totalVotesCast:
+          type: integer
+        fraudAttempts:
+          type: integer
+        activeElection:
+          type: boolean
+        verificationRate:
+          type: number
+      required:
+        - totalVoters
+        - totalVotesCast
+        - fraudAttempts
+        - activeElection
+        - verificationRate
+
+    ResetRequest:
+      type: object
+      properties:
+        adminPassword:
+          type: string
+      required:
+        - adminPassword
+
+    FraudLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        voterId:
+          type: string
+          nullable: true
+        attemptType:
+          type: string
+        details:
+          type: string
+        ipAddress:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - attemptType
+        - details
+        - createdAt
+
+    LogFraudRequest:
+      type: object
+      properties:
+        voterId:
+          type: string
+          nullable: true
+        attemptType:
+          type: string
+        details:
+          type: string
+      required:
+        - attemptType
+        - details
+
+    ToggleResultsRequest:
+      type: object
+      properties:
+        hidden:
+          type: boolean
+      required:
+        - hidden
